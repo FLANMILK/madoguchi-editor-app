@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>窓口md更新ツール</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 24px 16px;
+    background: #f7f7f5;
+  }
+  h1 { font-size: 18px; margin-bottom: 20px; }
+  label { display: block; margin-top: 16px; margin-bottom: 6px; font-size: 14px; color: #444; }
+  select, textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    font-size: 16px; /* 16px以上でスマホの自動ズームを防止 */
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  textarea { height: 200px; resize: vertical; }
+  button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+  }
+  button:disabled { background: #999; }
+  #status { margin-top: 16px; font-size: 14px; white-space: pre-wrap; }
+  .ok { color: #16a34a; }
+  .error { color: #dc2626; }
+</style>
+</head>
+<body>
+
+<h1>窓口md更新ツール</h1>
+
+<label for="target">窓口を選択</label>
+<select id="target">
+  <option value="BUSINESS窓口">BUSINESS窓口</option>
+  <option value="CREATIVE窓口">CREATIVE窓口</option>
+  <option value="CODING窓口">CODING窓口</option>
+  <option value="HEALTH窓口">HEALTH窓口</option>
+  <option value="FOOD窓口">FOOD窓口</option>
+</select>
+
+<label for="content">内容</label>
+<textarea id="content" placeholder="ここに入力してください"></textarea>
+
+<button id="submitBtn" onclick="submitForm()">送信</button>
+
+<div id="status"></div>
+
+<script>
+  // デプロイ後に発行されるGASのURL（.../exec で終わるもの）に書き換える
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz1FwAh4OE95gOwPc0sHg6rUlTU5WWLwJ3qlh72j87ojvgFl6zM8SXuiY8Ez2dG6VQ/exec";
+
+  function submitForm() {
+    const selectedName = document.getElementById("target").value;
+    const content = document.getElementById("content").value;
+    const statusEl = document.getElementById("status");
+    const btn = document.getElementById("submitBtn");
+
+    if (!content.trim()) {
+      statusEl.textContent = "内容が空です。入力してから送信してください。";
+      statusEl.className = "error";
+      return;
+    }
+
+    btn.disabled = true;
+    statusEl.textContent = "送信中...";
+    statusEl.className = "";
+
+    fetch(GAS_URL, {
+      method: "POST",
+      // Content-Typeをtext/plainにすることで、ブラウザの事前確認通信(CORSプリフライト)を回避する
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ selectedName, content })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          statusEl.textContent = "完了しました：" + data.message;
+          statusEl.className = "ok";
+          document.getElementById("content").value = "";
+        } else {
+          statusEl.textContent = "エラー：" + data.message;
+          statusEl.className = "error";
+        }
+      })
+      .catch(err => {
+        statusEl.textContent = "通信エラー：" + err.message;
+        statusEl.className = "error";
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
+  }
+</script>
+
+</body>
+</html>
